@@ -450,4 +450,36 @@ renderWeightSummary();
 renderMeals();
 
 document.getElementById('userIcon').addEventListener('click', ()=> showScreen('user'));
+
 showScreen('home');
+
+/* Gaya untuk Floating Action Button (FAB) Kamera */
+.fab-camera {
+    position: fixed; 
+    bottom: 96px; 
+    left: 50%;
+    transform: translateX(-50%);
+    width: 68px; 
+    height: 68px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: white;
+    font-size: 28px;
+    border: none;
+    box-shadow: 0 8px 24px rgba(47, 128, 237, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100; 
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.fab-camera:active {
+    transform: translateX(-50%) scale(0.95);
+}
+
+/* Sembunyikan FAB apabila berada di skrin selain 'home' */
+.screen:not(#home) .fab-camera {
+    display: none;
+}
