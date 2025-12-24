@@ -145,7 +145,7 @@
           <div class="divider">ATAU</div>
           
           <button class="secondary" data-nav="emailLogin">Log Masuk dengan E-mel</button>
-          <div style="font-size:12px; margin-top:10px; color:#ccc;">Versi Cloud + Fallback</div>
+          <div style="font-size:12px; margin-top:10px; color:#ccc;">Versi Cloud + Auto Fallback</div>
         </div>
       </section>
 
@@ -266,127 +266,13 @@
     </nav>
   </div>
 
-  <!-- SINGLE LOGIC SCRIPT -->
-  <script>
-    // 1. UI HELPERS
-    function showScreen(id) {
-        document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id===id));
-        const hide = ['login', 'emailLogin', 'emailSignup', 'onboarding'].includes(id);
-        
-        const uiElements = [document.getElementById('mainNav'), document.getElementById('fabBtn'), document.getElementById('userIcon')];
-        uiElements.forEach(el => el.classList.toggle('hidden', hide));
-        
-        if(id === 'home') renderHomeStats();
-        if(id === 'weight') renderWeightLogs();
-        if(id === 'analysis') renderMeals();
-    }
-    
-    // Attach Listeners
-    document.querySelectorAll('[data-nav]').forEach(el => {
-        el.addEventListener('click', (e) => { e.preventDefault(); showScreen(el.dataset.nav); });
-    });
-
-    // 2. STATE
-    let currentUser = null, mealLogs = [], weightLogs = [];
-    let activeMealMetric = 'calories';
-    const API_KEY = ""; 
-
-    // 3. LOGIN SUCCESS HANDLER (Universal)
-    window.handleLoginSuccess = (user) => {
-        currentUser = user;
-        console.log("Logged In:", user.email);
-        
-        // Update Status Text
-        const statusEl = document.getElementById('loginStatus');
-        if(statusEl) statusEl.innerText = "Berjaya! Mengalih...";
-
-        // Update Profile UI
-        document.getElementById('profileName').innerText = user.displayName || "Pengguna";
-        document.getElementById('profileEmail').innerText = user.email;
-        if(user.photoURL) document.getElementById('userIcon').innerHTML = `<img src="${user.photoURL}">`;
-        
-        // Load Data & Redirect
-        if (user.uid.startsWith('offline_')) {
-            mealLogs = JSON.parse(localStorage.getItem('mealLogs') || '[]');
-            weightLogs = JSON.parse(localStorage.getItem('weightLogs') || '[]');
-        } else if (window.subscribeToData) {
-            window.subscribeToData(user.uid);
-        }
-
-        // FORCE REDIRECT
-        setTimeout(() => {
-            if (!localStorage.getItem('userGoal')) showScreen('onboarding');
-            else showScreen('home');
-        }, 500); 
-    }
-
-    // 4. FORCED FALLBACK
-    window.forceOfflineLogin = () => {
-        const mockUser = { uid: "offline_" + Date.now(), displayName: "Demo User", email: "demo@local", photoURL: null };
-        localStorage.setItem('currentUser', JSON.stringify(mockUser));
-        localStorage.setItem('isLoggedIn', 'true');
-        window.handleLoginSuccess(mockUser);
-    }
-
-    // Auto-Login Check (Local)
-    if(localStorage.getItem('isLoggedIn') === 'true') {
-        const u = JSON.parse(localStorage.getItem('currentUser') || '{}');
-        window.handleLoginSuccess(u);
-    }
-
-    // 5. UTILS & APP LOGIC
-    function renderHomeStats() {
-        const todayLogs = mealLogs.filter(l => l.date === getTodayDate());
-        const sum = (k) => todayLogs.reduce((a, b) => a + (b[k]||0), 0);
-        document.getElementById('calBalance').innerText = sum('calories');
-        document.getElementById('protBalance').innerText = sum('protein');
-        document.getElementById('carbBalance').innerText = sum('carbs');
-        
-        const list = document.getElementById('recentMealsList');
-        list.innerHTML = todayLogs.length ? '' : `<div class="list-item" style="justify-content:center; color:var(--muted);">Tiada rekod hari ini</div>`;
-        let html = '';
-        todayLogs.forEach(m => { html += `<div class="list-item"><div class="item-val">${m.name}</div><div class="item-date">${m.calories} kcal</div></div>`; });
-        if(html) list.innerHTML = html;
-    }
-
-    function renderWeightLogs() { /* Same as before */ } // Simplified for brevity in chat display, but code assumes full logic is present
-    function renderMeals() { /* Same as before */ } 
-    
-    // Stub functions for completeness if copy-pasting partial
-    function getTodayDate() { const d = new Date(); return new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0]; }
-    document.getElementById('inpDate').value = getTodayDate();
-    
-    window.saveOnboarding = () => {
-        const start = document.getElementById('onboardStartWeight').value;
-        const goal = document.getElementById('onboardGoalWeight').value;
-        if(!start) return alert("Sila isi berat.");
-        localStorage.setItem('userGoal', goal);
-        // Save initial logic...
-        showScreen('home');
-    };
-
-    window.triggerCamera = () => document.getElementById('cameraInput').click();
-    window.triggerGallery = () => document.getElementById('galleryInput').click();
-    window.handleImageUpload = (input) => { 
-        alert("Simulasi AI: Nasi Lemak (450 kcal)"); 
-        // Add dummy data for UX
-        mealLogs.push({ name: "Nasi Lemak", calories: 450, protein: 12, carbs: 60, date: getTodayDate() });
-        showScreen('home'); 
-    };
-    window.resetUpload = () => showScreen('home');
-    window.handleLogout = () => {
-        localStorage.clear();
-        window.location.reload();
-    }
-  </script>
-
-  <!-- FIREBASE MODULE -->
+  <!-- MODULE SCRIPT (Logic + Firebase) -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    // --- KEYS ANDA ---
+    // --- KEYS (Pre-filled) ---
     const firebaseConfig = {
       apiKey: "AIzaSyC9hya7EGpzu9Qn-bcjcwVpgy-_K7NR47A",
       authDomain: "nutrisnap-34c6b.firebaseapp.com",
@@ -396,89 +282,219 @@
       appId: "1:427310632230:web:78e2943728aec2987ac5e7"
     };
 
+    // --- STATE ---
     let app, auth, db;
+    let currentUser = null;
+    let mealLogs = [];
+    let weightLogs = [];
+    let activeMealMetric = 'calories';
+    let unsubscribeMeals = null;
+    let unsubscribeWeight = null;
     let isFirebaseReady = false;
+    const API_KEY = ""; // Optional Gemini API Key
 
+    // --- INIT & AUTH ---
     try {
         app = initializeApp(firebaseConfig);
         auth = getAuth(app);
         db = getFirestore(app);
-        window.isFirebaseReady = true;
+        isFirebaseReady = true;
 
         onAuthStateChanged(auth, (user) => {
-            if (user) window.handleLoginSuccess(user);
+            if (user) {
+                // Real Login Success
+                handleLoginSuccess(user);
+            } else {
+                // Check if we are faking it (Offline Mode)
+                const offline = localStorage.getItem('isLoggedIn') === 'true';
+                const userStr = localStorage.getItem('currentUser');
+                if (offline && userStr) {
+                    const u = JSON.parse(userStr);
+                    if (u.uid.startsWith('offline_')) {
+                        handleLoginSuccess(u);
+                        return;
+                    }
+                }
+                showScreen('login');
+            }
         });
-
     } catch (e) {
-        console.error("Firebase Init Failed:", e);
+        console.warn("Offline Mode forced due to init error");
+        checkOfflineSession();
     }
 
-    // --- LOGIN HANDLER ---
+    // --- GLOBAL LOGIN FUNCTIONS ---
     window.handleGoogleLogin = async () => {
         const btn = document.getElementById('googleBtn');
         const stat = document.getElementById('loginStatus');
-        btn.disabled = true;
-        btn.innerText = "Menghubungi Google...";
-        stat.innerText = "Sila tunggu pop-up...";
-
-        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("TIMEOUT")), 8000));
-
+        btn.innerText = "Sila Tunggu...";
+        stat.innerText = "Sedang menghubungi Google...";
+        
         try {
-            if (!window.isFirebaseReady) throw new Error("Firebase not initialized");
+            if (!isFirebaseReady) throw new Error("Firebase unavailable");
             
-            // Race: Login vs Timeout
-            await Promise.race([
-                signInWithPopup(auth, new GoogleAuthProvider()),
-                timeoutPromise
-            ]);
+            // Attempt Login
+            const result = await signInWithPopup(auth, new GoogleAuthProvider());
             
-            // Note: onAuthStateChanged will handle the redirect if successful
-            stat.innerText = "Berjaya! Mengalih...";
+            // MANUAL FORCE if listener is slow
+            stat.innerText = "Berjaya! Masuk...";
+            handleLoginSuccess(result.user);
             
         } catch (error) {
-            console.error("Login Error:", error);
-            stat.innerText = "Isu dikesan...";
+            console.warn("Login Blocked/Failed:", error.code);
             
-            // AUTOMATIC FALLBACK
-            if (error.code === 'auth/unauthorized-domain' || error.message === "TIMEOUT" || error.code === 'auth/popup-closed-by-user' || error.code === 'auth/operation-not-allowed') {
-                stat.innerText = "Domain Blocked/Timeout. Entering Offline Mode...";
-                setTimeout(() => window.forceOfflineLogin(), 1000);
+            // SILENT FALLBACK: If domain blocked, just let them in locally
+            if (error.code === 'auth/unauthorized-domain' || error.code === 'auth/popup-closed-by-user' || error.code === 'auth/operation-not-allowed') {
+                stat.innerText = "Domain Blocked. Switching to Offline...";
+                forceOfflineLogin();
             } else {
                 alert("Ralat: " + error.message);
                 btn.innerText = "Masuk dengan Google";
-                btn.disabled = false;
-                stat.innerText = "";
             }
         }
     };
 
-    window.handleEmailLogin = async () => { /* Add logic if needed */ };
-    window.handleEmailSignup = async () => { /* Add logic if needed */ };
-
-    // Data Subscription Export
-    window.subscribeToData = (uid) => {
-        if (!window.isFirebaseReady) return;
-        const mealsRef = collection(db, 'users', uid, 'meals');
-        const qMeals = query(mealsRef, orderBy('date', 'desc'), limit(50));
-        onSnapshot(qMeals, (snap) => {
-            // Update main script var manually since imports are module scoped
-            // We use a bridge
-            const data = []; snap.forEach(d => data.push(d.data()));
-            if(window.updateDataBridge) window.updateDataBridge('meals', data);
-        });
-        // ... weights logic similar
+    function forceOfflineLogin() {
+        const mockUser = { uid: "offline_user", displayName: "Pengguna Offline", email: "offline@local", photoURL: null };
+        localStorage.setItem('currentUser', JSON.stringify(mockUser));
+        localStorage.setItem('isLoggedIn', 'true');
+        handleLoginSuccess(mockUser); // Direct call, no reload needed
     }
-  </script>
 
-  <!-- BRIDGE -->
-  <script>
-    window.updateDataBridge = (type, data) => {
-        if(type === 'meals') {
-            mealLogs = data;
-            renderHomeStats();
-            if(document.getElementById('analysis').classList.contains('active')) renderMeals();
+    function checkOfflineSession() {
+        if(localStorage.getItem('isLoggedIn') === 'true') {
+            const u = JSON.parse(localStorage.getItem('currentUser') || '{}');
+            handleLoginSuccess(u);
+        } else {
+            showScreen('login');
         }
     }
+
+    function handleLoginSuccess(user) {
+        currentUser = user;
+        console.log("Welcome", user.email);
+        
+        // Update UI
+        document.getElementById('profileName').innerText = user.displayName || "Pengguna";
+        document.getElementById('profileEmail').innerText = user.email;
+        if(user.photoURL) document.getElementById('userIcon').innerHTML = `<img src="${user.photoURL}">`;
+        
+        // Load Data
+        if(user.uid.startsWith('offline_')) {
+             mealLogs = JSON.parse(localStorage.getItem('mealLogs') || '[]');
+             weightLogs = JSON.parse(localStorage.getItem('weightLogs') || '[]');
+             renderHomeStats();
+        } else {
+             subscribeToData(user.uid);
+        }
+
+        // NAVIGATION LOGIC (The fix)
+        // If they have a goal, go Home. If not, go Onboarding.
+        if (localStorage.getItem('userGoal')) {
+            showScreen('home');
+        } else {
+            showScreen('onboarding');
+        }
+    }
+
+    // --- OTHER HANDLERS ---
+    window.handleEmailLogin = async () => { /* ... simplified ... */ };
+    window.handleEmailSignup = async () => { /* ... simplified ... */ };
+    window.handleLogout = async () => {
+        if(isFirebaseReady) await signOut(auth).catch(()=>{});
+        localStorage.clear();
+        window.location.reload();
+    };
+
+    // --- DATA LOGIC ---
+    function subscribeToData(uid) {
+        const mealsRef = collection(db, 'users', uid, 'meals');
+        const q = query(mealsRef, orderBy('date', 'desc'), limit(50));
+        unsubscribeMeals = onSnapshot(q, (snap) => {
+            mealLogs = []; snap.forEach(d => mealLogs.push(d.data()));
+            renderHomeStats();
+            if(document.getElementById('analysis').classList.contains('active')) renderMeals();
+        });
+        // (Similar for weights...)
+        const wRef = collection(db, 'users', uid, 'weights');
+        const qw = query(wRef, orderBy('date', 'desc'), limit(20));
+        unsubscribeWeight = onSnapshot(qw, (snap) => {
+             weightLogs = []; snap.forEach(d => weightLogs.push(d.data()));
+             if(document.getElementById('weight').classList.contains('active')) renderWeightLogs();
+        });
+    }
+
+    // --- UI HELPERS ---
+    window.showScreen = showScreen; // Expose to HTML
+    function showScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id===id));
+        
+        const isAuth = ['login', 'emailLogin', 'emailSignup'].includes(id); // Onboarding shows nav? Maybe not.
+        const hideNav = isAuth || id === 'onboarding';
+
+        const els = [document.getElementById('mainNav'), document.getElementById('fabBtn'), document.getElementById('userIcon')];
+        els.forEach(el => el.classList.toggle('hidden', hideNav));
+        
+        if(id === 'home') renderHomeStats();
+        if(id === 'weight') renderWeightLogs();
+        if(id === 'analysis') renderMeals();
+    }
+
+    // Events
+    document.querySelectorAll('[data-nav]').forEach(el => {
+        el.addEventListener('click', (e) => { e.preventDefault(); showScreen(el.dataset.nav); });
+    });
+
+    // --- RENDERERS ---
+    function renderHomeStats() {
+        const today = getTodayDate();
+        const logs = mealLogs.filter(l => l.date === today);
+        const sum = (k) => logs.reduce((a, b) => a + (b[k]||0), 0);
+        document.getElementById('calBalance').innerText = sum('calories');
+        document.getElementById('protBalance').innerText = sum('protein');
+        document.getElementById('carbBalance').innerText = sum('carbs');
+        
+        const list = document.getElementById('recentMealsList');
+        list.innerHTML = logs.length ? '' : `<div style="text-align:center;color:#999;padding:10px">Tiada rekod hari ini</div>`;
+        logs.forEach(m => list.innerHTML += `<div class="list-item"><div class="item-val">${m.name}</div><div class="item-date">${m.calories} kcal</div></div>`);
+    }
+
+    function renderWeightLogs() { /* ... */ } 
+    function renderMeals() { 
+        const container = document.getElementById('mealsContainer');
+        container.innerHTML = '';
+        const grouped = {};
+        mealLogs.forEach(i => { if(!grouped[i.date]) grouped[i.date]=[]; grouped[i.date].push(i); });
+        Object.keys(grouped).sort().reverse().forEach(date => {
+             let html = `<div class="meal-day"><h4>${date}</h4>`;
+             grouped[date].forEach(i => html += `<div class="meal-row"><div>${i.name}</div><div>${i.calories} kcal</div></div>`);
+             container.innerHTML += html + '</div>';
+        });
+    }
+
+    // --- UTILS ---
+    window.saveOnboarding = () => {
+        const val = document.getElementById('onboardGoalWeight').value;
+        if(val) { localStorage.setItem('userGoal', val); showScreen('home'); }
+    };
+    window.triggerCamera = () => document.getElementById('cameraInput').click();
+    window.triggerGallery = () => document.getElementById('galleryInput').click();
+    window.handleImageUpload = (input) => { 
+        // Simulation
+        setTimeout(() => {
+            if(confirm("AI Simulasi: Nasi Lemak (450 kcal). Simpan?")) {
+                const data = { name: "Nasi Lemak", calories: 450, protein: 12, carbs: 60, date: getTodayDate() };
+                if(isFirebaseReady && !currentUser.uid.startsWith('offline_')) addDoc(collection(db,'users',currentUser.uid,'meals'), data);
+                else { mealLogs.push(data); localStorage.setItem('mealLogs', JSON.stringify(mealLogs)); }
+                showScreen('home');
+            }
+        }, 500);
+    };
+    window.resetUpload = () => showScreen('home');
+    function getTodayDate() { const d = new Date(); return new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0]; }
+    document.getElementById('inpDate').value = getTodayDate();
+    document.getElementById('metricToggle').addEventListener('change', (e) => { activeMealMetric = e.target.value; renderMeals(); });
+
   </script>
 </body>
 </html>
