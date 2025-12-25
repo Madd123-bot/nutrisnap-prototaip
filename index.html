@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>NutriSnap - Cloud Version</title>
+  <title>NutriSnap</title>
   
   <style>
     /* --- CSS UTAMA --- */
@@ -17,6 +17,7 @@
       --accent: #2dce89;
       --accent-gradient: linear-gradient(135deg, #2dce89 0%, #2dcecc 100%);
       --danger: #f5365c;
+      --facebook: #1877F2;
       --radius: 16px; 
       font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
@@ -68,10 +69,14 @@
         width: 100%; padding: 14px; border: none; border-radius: 10px;
         font-size: 16px; font-weight: 600; cursor: pointer; margin-bottom: 12px;
         transition: transform 0.1s;
+        display: flex; align-items: center; justify-content: center; gap: 10px;
     }
     button:active { transform: scale(0.97); }
     .primary { background: var(--primary-gradient); color: white; box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11); }
     .secondary { background: var(--soft); color: var(--primary); }
+    .fb-btn { background: var(--facebook); color: white; box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11); }
+    .accent-btn { background: var(--accent-gradient); color: white; }
+    .danger-btn { background: #fff0f3; color: var(--danger); }
     
     .divider { margin: 25px 0; color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: 1px; }
 
@@ -138,14 +143,22 @@
           <h1>Selamat Datang</h1>
           <p style="color:#8898aa;">Sila log masuk untuk menyimpan data.</p>
           
-          <button id="googleBtn" class="primary" onclick="window.handleGoogleLogin()">Masuk dengan Google</button>
+          <button id="googleBtn" class="primary" onclick="window.handleGoogleLogin()">
+             <svg width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.25 5 12c0-4.1 3.2-7.27 7.2-7.27c3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12c0 5.05 4.13 10 10.22 10c5.35 0 9.25-3.67 9.25-9.09c0-1.15-.15-1.81-.15-1.81z"/></svg>
+             Masuk dengan Google
+          </button>
+
+          <button id="fbBtn" class="fb-btn" onclick="window.handleFacebookLogin()">
+             <svg width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2.04C6.5 2.04 2 6.53 2 12.06C2 17.06 5.66 21.21 10.44 21.96V14.96H7.9V12.06H10.44V9.85C10.44 7.34 11.93 5.96 14.22 5.96C15.31 5.96 16.45 6.15 16.45 6.15V8.62H15.19C13.95 8.62 13.56 9.39 13.56 10.18V12.06H16.34L15.89 14.96H13.56V21.96A10 10 0 0 0 22 12.06C22 6.53 17.5 2.04 12 2.04Z"/></svg>
+             Masuk dengan Facebook
+          </button>
           
           <div id="loginStatus" class="status-text"></div>
 
           <div class="divider">ATAU</div>
           
           <button class="secondary" data-nav="emailLogin">Log Masuk dengan E-mel</button>
-          <div style="font-size:12px; margin-top:10px; color:#ccc;">Versi Cloud Sahaja</div>
+          <div style="font-size:12px; margin-top:10px; color:#ccc;">Versi Cloud + Fallback</div>
         </div>
       </section>
 
@@ -268,59 +281,46 @@
     </nav>
   </div>
 
-  <!-- SINGLE SCRIPT TO RULE THEM ALL -->
+  <!-- SINGLE LOGIC SCRIPT -->
   <script>
-    // --- 1. UI HELPERS (Defined First) ---
+    // --- 1. UI HELPERS ---
     function showScreen(id) {
         document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id===id));
         const isAuth = ['login', 'emailLogin', 'emailSignup', 'onboarding'].includes(id);
-        
-        if (!isAuth) {
-            document.getElementById('mainNav').classList.remove('hidden');
-            document.getElementById('fabBtn').classList.remove('hidden');
-            document.getElementById('userIcon').classList.remove('hidden');
-        } else {
-            document.getElementById('mainNav').classList.add('hidden');
-            document.getElementById('fabBtn').classList.add('hidden');
-            document.getElementById('userIcon').classList.add('hidden');
-        }
+        const hideNav = isAuth; // Onboarding hides nav
+
+        const els = [document.getElementById('mainNav'), document.getElementById('fabBtn'), document.getElementById('userIcon')];
+        els.forEach(el => el.classList.toggle('hidden', hideNav));
         
         if(id === 'home') renderHomeStats();
         if(id === 'weight') renderWeightLogs();
         if(id === 'analysis') renderMeals();
     }
-
-    // Attach Listeners immediately
     document.querySelectorAll('[data-nav]').forEach(el => {
         el.addEventListener('click', (e) => { e.preventDefault(); showScreen(el.dataset.nav); });
     });
 
     // --- 2. GLOBAL STATE ---
-    let currentUser = null;
-    let mealLogs = [];
-    let weightLogs = [];
+    let currentUser = null, mealLogs = [], weightLogs = [];
     let activeMealMetric = 'calories';
-    let unsubscribeMeals = null;
-    let unsubscribeWeight = null;
-    const API_KEY = ""; // PASTE KEY GEMINI (OPTIONAL)
+    const API_KEY = ""; 
 
-    // --- 3. LOGIN SUCCESS HANDLER (Universal) ---
+    // --- 3. LOGIN SUCCESS HANDLER ---
     window.handleLoginSuccess = (user) => {
         currentUser = user;
-        console.log("LOGIN SUCCESS:", user.email);
+        console.log("Logged In:", user.email);
         
-        // Update Status Text
         const statusEl = document.getElementById('loginStatus');
         if(statusEl) statusEl.innerText = "Berjaya! Mengalih...";
 
-        // Update Profile UI
         document.getElementById('profileName').innerText = user.displayName || "Pengguna";
         document.getElementById('profileEmail').innerText = user.email;
         if(user.photoURL) document.getElementById('userIcon').innerHTML = `<img src="${user.photoURL}">`;
-        else document.getElementById('userIcon').innerText = (user.displayName || "A").charAt(0).toUpperCase();
-
-        // Load Data
-        if (window.subscribeToData) {
+        
+        if (user.uid.startsWith('offline_')) {
+            mealLogs = JSON.parse(localStorage.getItem('mealLogs') || '[]');
+            weightLogs = JSON.parse(localStorage.getItem('weightLogs') || '[]');
+        } else if (window.subscribeToData) {
             window.subscribeToData(user.uid);
         }
 
@@ -333,12 +333,28 @@
 
     window.handleLogoutSuccess = () => {
         currentUser = null;
-        if(unsubscribeMeals) unsubscribeMeals();
-        if(unsubscribeWeight) unsubscribeWeight();
         showScreen('login');
     }
 
-    // --- 4. DATA LOGIC (Functions used by both Online/Offline) ---
+    window.forceOfflineLogin = (provider = "Offline") => {
+        const mockUser = { 
+            uid: "offline_user_" + Date.now(), 
+            displayName: "Pengguna " + provider, 
+            email: provider.toLowerCase() + "@nutrisnap.com", 
+            photoURL: null 
+        };
+        localStorage.setItem('currentUser', JSON.stringify(mockUser));
+        localStorage.setItem('isLoggedIn', 'true');
+        window.handleLoginSuccess(mockUser);
+    }
+
+    // Auto-Login Check (Local)
+    if(localStorage.getItem('isLoggedIn') === 'true') {
+        const u = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        window.handleLoginSuccess(u);
+    }
+
+    // --- 4. DATA LOGIC ---
     function renderHomeStats() {
         const today = getTodayDate();
         const logs = mealLogs.filter(l => l.date === today);
@@ -384,8 +400,8 @@
         setTimeout(() => {
             if(confirm("AI Simulasi: Nasi Lemak (450 kcal). Simpan?")) {
                 const data = { name: "Nasi Lemak", calories: 450, protein: 12, carbs: 60, date: getTodayDate() };
-                if(window.isFirebaseReady && currentUser) addDoc(collection(db,'users',currentUser.uid,'meals'), data);
-                else { mealLogs.push(data); renderHomeStats(); }
+                if(window.isFirebaseReady && !currentUser.uid.startsWith('offline_')) window.fs.addDoc(window.getCollection(currentUser.uid,'meals'), data);
+                else { mealLogs.push(data); localStorage.setItem('mealLogs', JSON.stringify(mealLogs)); renderHomeStats(); }
                 showScreen('home');
             }
         }, 500);
@@ -394,10 +410,28 @@
     function getTodayDate() { const d = new Date(); return new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0]; }
     document.getElementById('inpDate').value = getTodayDate();
     document.getElementById('metricToggle').addEventListener('change', (e) => { activeMealMetric = e.target.value; renderMeals(); });
-
+    window.resetApp = () => { if(confirm("Padam data?")) { localStorage.clear(); location.reload(); } };
+    
+    // Save Weight
+    window.saveWeight = () => {
+        const w = document.getElementById('inpWeight').value;
+        if (!w) return alert("Isi berat.");
+        const data = { weight: parseFloat(w), date: document.getElementById('inpDate').value };
+        
+        if (currentUser.uid.startsWith('offline_')) {
+            weightLogs.push(data);
+            localStorage.setItem('weightLogs', JSON.stringify(weightLogs));
+            renderWeightLogs();
+        } else if (window.fs) {
+            window.fs.addDoc(window.getCollection(currentUser.uid, 'weights'), data);
+        }
+        document.getElementById('inpWeight').value = '';
+        alert("Disimpan!");
+    }
+    document.getElementById('btnSaveWeight').onclick = window.saveWeight;
   </script>
 
-  <!-- FIREBASE MODULE (Runs Last) -->
+  <!-- FIREBASE MODULE -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, FacebookAuthProvider, onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
@@ -414,9 +448,7 @@
     };
 
     let app, auth, db;
-    let isFirebaseReady = false;
-
-    // --- INIT FIREBASE ---
+    
     try {
         app = initializeApp(firebaseConfig);
         auth = getAuth(app);
@@ -429,7 +461,8 @@
             if (user) {
                 window.handleLoginSuccess(user);
             } else {
-                window.handleLogoutSuccess();
+                const offline = localStorage.getItem('isLoggedIn') === 'true';
+                if (!offline) window.handleLogoutSuccess();
             }
         });
 
@@ -438,12 +471,12 @@
     }
 
     // --- EXPORTS TO WINDOW ---
-    window.getCollection = (uid, col) => (isFirebaseReady) ? collection(db, 'users', uid, col) : null;
+    window.getCollection = (uid, col) => (window.isFirebaseReady && !uid.startsWith('offline_')) ? collection(db, 'users', uid, col) : null;
     window.fs = { query, orderBy, limit, onSnapshot, addDoc };
     
     // --- DATA SUBSCRIPTION ---
     window.subscribeToData = (uid) => {
-        if (!isFirebaseReady) return;
+        if (!window.isFirebaseReady) return;
         
         const mealsRef = collection(db, 'users', uid, 'meals');
         const qMeals = query(mealsRef, orderBy('date', 'desc'), limit(50));
@@ -470,27 +503,110 @@
         btn.innerText = "Menghubungi Google...";
         stat.innerText = "Sila tunggu pop-up...";
 
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("TIMEOUT")), 5000));
+
         try {
             if (!window.isFirebaseReady) throw new Error("Firebase not ready");
             
-            await signInWithPopup(auth, new GoogleAuthProvider());
+            // Race: Login vs Timeout
+            await Promise.race([
+                signInWithPopup(auth, new GoogleAuthProvider()),
+                timeoutPromise
+            ]);
             
             stat.innerText = "Berjaya! Mengalih...";
             
         } catch (error) {
             console.error("Login Error:", error);
-            alert("Ralat: " + error.message);
-            btn.innerText = "Masuk dengan Google";
-            btn.disabled = false;
-            stat.innerText = "";
+            
+            // AUTOMATIC FALLBACK
+            if (error.code === 'auth/unauthorized-domain' || error.message === "TIMEOUT" || error.code === 'auth/popup-closed-by-user' || error.code === 'auth/operation-not-allowed') {
+                stat.innerText = "Domain Blocked. Entering Offline Mode...";
+                setTimeout(() => window.forceOfflineLogin('Google'), 1000);
+            } else {
+                alert("Ralat: " + error.message);
+                btn.innerText = "Masuk dengan Google";
+                btn.disabled = false;
+                stat.innerText = "";
+            }
         }
     };
 
-    // Other login handlers...
-    window.handleEmailLogin = async () => { /* Logic */ };
-    window.handleEmailSignup = async () => { /* Logic */ };
+    // FACEBOOK
+    window.handleFacebookLogin = async () => {
+        const btn = document.getElementById('fbBtn');
+        const stat = document.getElementById('loginStatus');
+        btn.disabled = true;
+        btn.innerText = "Menghubungi FB...";
+        stat.innerText = "Sila tunggu pop-up...";
+        
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("TIMEOUT")), 5000));
+
+        try {
+            if (!window.isFirebaseReady) throw new Error("Firebase not ready");
+            await Promise.race([
+                signInWithPopup(auth, new FacebookAuthProvider()),
+                timeoutPromise
+            ]);
+            stat.innerText = "Berjaya! Mengalih...";
+        } catch (error) {
+            console.error("Login Error:", error);
+            if (error.code === 'auth/unauthorized-domain' || error.message === "TIMEOUT" || error.code === 'auth/popup-closed-by-user' || error.code === 'auth/operation-not-allowed') {
+                stat.innerText = "Domain Blocked. Entering Offline Mode...";
+                setTimeout(() => window.forceOfflineLogin('Facebook'), 1000);
+            } else {
+                alert("Ralat: " + error.message);
+                btn.disabled = false;
+                btn.innerText = "Masuk dengan Facebook";
+                stat.innerText = "";
+            }
+        }
+    };
+
+    window.handleEmailLogin = async () => { 
+        const email = document.getElementById('loginEmail').value;
+        const pass = document.getElementById('loginPass').value;
+        if(!email || !pass) return alert("Sila isi info");
+        
+        try {
+            await signInWithEmailAndPassword(auth, email, pass);
+        } catch(error) {
+             // Fallback
+            const users = JSON.parse(localStorage.getItem('simUsers') || '[]');
+            const u = users.find(x => x.email === email && x.pass === pass);
+            if(u) {
+                localStorage.setItem('currentUser', JSON.stringify(u));
+                localStorage.setItem('isLoggedIn', 'true');
+                window.handleLoginSuccess(u);
+            } else {
+                alert("Gagal: " + error.message);
+            }
+        }
+    };
+
+    window.handleEmailSignup = async () => {
+        const name = document.getElementById('signupName').value;
+        const email = document.getElementById('signupEmail').value;
+        const pass = document.getElementById('signupPass').value;
+        if(!name || !email || !pass) return alert("Sila isi info");
+        
+        try {
+            const res = await createUserWithEmailAndPassword(auth, email, pass);
+            await updateProfile(res.user, { displayName: name });
+        } catch(error) {
+            // Fallback
+            const users = JSON.parse(localStorage.getItem('simUsers') || '[]');
+            users.push({uid: "sim_"+Date.now(), displayName: name, email, pass});
+            localStorage.setItem('simUsers', JSON.stringify(users));
+            alert("Didaftarkan secara Offline (Firebase Gagal). Sila Login.");
+            showScreen('emailLogin');
+        }
+    };
+    
     window.handleLogout = async () => {
         if (window.isFirebaseReady) await signOut(auth).catch(()=>{});
+        localStorage.removeItem('isLoggedIn');
+        localStorage.removeItem('currentUser');
         window.location.reload();
     };
   </script>
