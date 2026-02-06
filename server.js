@@ -3,33 +3,32 @@ import cors from "cors";
 import fetch from "node-fetch";
 
 const app = express();
+
 app.use(cors());
 app.use(express.json());
-app.use(express.json());
-app.post("/ai", async (req,res)=>{
 
-```
-try{
+app.post("/analyze", async (req,res)=>{
 
-    const r = await fetch("https://api.openai.com/v1/chat/completions",{
-        method:"POST",
-        headers:{
-            "Content-Type":"application/json",
-            "Authorization":"Bearer " + process.env.OPENAI_KEY
-        },
-        body: JSON.stringify(req.body)
-    });
+    try{
 
-    const data = await r.json();
-    res.json(data);
+        const r = await fetch("https://api.openai.com/v1/chat/completions",{
+            method:"POST",
+            headers:{
+                "Content-Type":"application/json",
+                "Authorization":"Bearer " + process.env.OPENAI_API_KEY
+            },
+            body: JSON.stringify(req.body)
+        });
 
-}catch(e){
-    res.status(500).json({error:e.message});
-}
-```
+        const data = await r.json();
+        res.json(data);
+
+    }catch(e){
+        res.status(500).json({error:e.message});
+    }
 
 });
 
 app.listen(3000,()=>{
-console.log("AI Proxy Running");
+    console.log("AI Proxy Running");
 });
