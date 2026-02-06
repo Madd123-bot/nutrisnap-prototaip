@@ -12,9 +12,10 @@ app.get("/", (req,res)=>{
 });
 
 app.post("/ai", async (req,res)=>{
+
 try{
 
-    const ai = await fetch("https://api.openai.com/v1/chat/completions",{
+    const ai = await fetch("https://api.openai.com/v1/responses",{
         method:"POST",
         headers:{
             "Content-Type":"application/json",
@@ -22,12 +23,18 @@ try{
         },
         body: JSON.stringify({
             model:"gpt-4.1-mini",
-            messages:[
+            input:[
                 {
                     role:"user",
                     content:[
-                        { type:"text", text:"Detect Malaysian food. Return ONLY JSON array [{name,calories,protein,carbs}]" },
-                        { type:"image_url", image_url:{ url:req.body.image } }
+                        {
+                            type:"input_text",
+                            text:"Detect Malaysian food. Return ONLY JSON array [{name,calories,protein,carbs}]"
+                        },
+                        {
+                            type:"input_image",
+                            image_url:req.body.image
+                        }
                     ]
                 }
             ]
@@ -36,18 +43,17 @@ try{
 
     const data = await ai.json();
 
-    if(!data.choices){
+    if(!data.output_text){
         console.log("OPENAI ERROR:", data);
         return res.json([]);
     }
 
-    const text = data.choices[0].message.content || "[]";
-
     let result = [];
+
     try{
-        result = JSON.parse(text);
+        result = JSON.parse(data.output_text);
     }catch{
-        console.log("JSON PARSE FAIL:", text);
+        console.log("JSON FAIL:", data.output_text);
     }
 
     res.json(result);
@@ -56,6 +62,7 @@ try{
     console.log("SERVER ERROR:",e);
     res.status(500).json({error:e.message});
 }
+
 });
 
 const PORT = process.env.PORT || 3000;
