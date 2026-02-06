@@ -3,6 +3,10 @@ import cors from "cors";
 
 const app = express();
 
+app.get("/",(req,res)=>{
+    res.send("AI Proxy Alive 🔥");
+});
+
 app.use(cors());
 app.use(express.json());
 app.post("/ai", async (req,res)=>{
