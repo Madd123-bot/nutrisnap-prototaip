@@ -42,14 +42,22 @@ try{
 
     console.log("OPENAI RAW:", JSON.stringify(data));
 
-    const text = data.output_text || "[]";
+    let text = "[]";
 
-    let result = [];
-    try{
-        result = JSON.parse(text);
-    }catch{
-        console.log("JSON PARSE FAIL:", text);
-    }
+// 🔥 Ambil text dari responses API betul
+if(data.output_text){
+    text = data.output_text;
+}else if(data.output && data.output[0]?.content){
+    text = data.output[0].content[0].text || "[]";
+}
+
+let result = [];
+try{
+    result = JSON.parse(text);
+}catch{
+    console.log("JSON PARSE FAIL:", text);
+}
+
 
     res.json(result);
 
