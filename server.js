@@ -3,6 +3,7 @@ import cors from "cors";
 import fetch from "node-fetch";
 
 const app = express();
+const text = data.output_text || "[]";
 
 app.use(cors());
 app.use(express.json());
