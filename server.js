@@ -9,8 +9,8 @@ app.use(cors({
     methods: ["GET","POST","OPTIONS"],
     allowedHeaders: ["Content-Type","Authorization"]
 }));
-
 app.use(express.json({limit:"10mb"}));
+app.options("*", cors());
 
 app.get("/", (req,res)=>{
     res.send("AI Proxy Alive 🔥");
