@@ -42,7 +42,24 @@ try{
         return res.json([]);
     }
 
-    let text = data.choices[0].message.content || "[]";
+    const content = data?.choices?.[0]?.message?.content;
+
+let parsed = [];
+
+if(Array.isArray(content)){
+    // kalau OpenAI dah bagi array object
+    parsed = content;
+}
+else if(typeof content === "string"){
+    try{
+        parsed = JSON.parse(content);
+    }catch{
+        console.log("JSON PARSE FAIL:",content);
+    }
+}
+
+res.json(parsed);
+
 
     let parsed = [];
     try{
