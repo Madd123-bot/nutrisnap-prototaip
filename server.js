@@ -3,17 +3,15 @@ import cors from "cors";
 import fetch from "node-fetch";
 
 const app = express();
-const text = data.output_text || "[]";
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({limit:"10mb"}));
 
 app.get("/", (req,res)=>{
     res.send("AI Proxy Alive 🔥");
 });
 
 app.post("/ai", async (req,res)=>{
-
 try{
 
     const ai = await fetch("https://api.openai.com/v1/responses",{
@@ -44,17 +42,15 @@ try{
 
     const data = await ai.json();
 
-    if(!data.output_text){
-        console.log("OPENAI ERROR:", data);
-        return res.json([]);
-    }
+    console.log("OPENAI RAW:", JSON.stringify(data));
+
+    const text = data.output_text || "[]";
 
     let result = [];
-
     try{
-        result = JSON.parse(data.output_text);
+        result = JSON.parse(text);
     }catch{
-        console.log("JSON FAIL:", data.output_text);
+        console.log("JSON PARSE FAIL:", text);
     }
 
     res.json(result);
@@ -63,7 +59,6 @@ try{
     console.log("SERVER ERROR:",e);
     res.status(500).json({error:e.message});
 }
-
 });
 
 const PORT = process.env.PORT || 3000;
