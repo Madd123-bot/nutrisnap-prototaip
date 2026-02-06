@@ -3,12 +3,13 @@ import cors from "cors";
 
 const app = express();
 
+app.use(cors());
+app.use(express.json());
+
 app.get("/",(req,res)=>{
     res.send("AI Proxy Alive 🔥");
 });
 
-app.use(cors());
-app.use(express.json());
 app.post("/ai", async (req,res)=>{
 
 try{
@@ -35,18 +36,25 @@ try{
 
     const data = await ai.json();
 
-    const text = data.choices?.[0]?.message?.content || "[]";
+    const text = data?.choices?.[0]?.message?.content || "[]";
 
-    res.json(JSON.parse(text));
+    let parsed;
+    try{
+        parsed = JSON.parse(text);
+    }catch{
+        parsed = [];
+    }
+
+    res.json(parsed);
 
 }catch(e){
-    console.log(e);
+    console.log("AI ERROR:",e);
     res.status(500).json({error:e.message});
 }
 
 });
 
-
-app.listen(3000,()=>{
-    console.log("AI Proxy Running");
+const PORT = process.env.PORT || 3000;
+app.listen(PORT,()=>{
+    console.log("AI Proxy Running on", PORT);
 });
