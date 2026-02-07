@@ -32,7 +32,11 @@ try{
                 {
                     role:"user",
                     content:[
-                        { type:"input_text", text:"Detect Malaysian food. Return ONLY JSON array [{name,calories,protein,carbs}]" },
+                        { 
+  type:"input_text",
+  text:"Return ONLY JSON array of Malaysian food names detected in image. Example: [\"nasi lemak\",\"teh tarik\"]"
+}
+,
                         {
                         type:"input_image",
                         image_url: req.body.image
