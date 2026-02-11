@@ -72,7 +72,7 @@ app.post("/ai", async (req,res)=>{
     const base64 = req.body.image.replace(/^data:image\/\w+;base64,/, "");
 
     const ai = await fetch(
-      "https://router.huggingface.co/hf-inference/models/nateraw/food",
+      "https://router.huggingface.co/hf-inference/models/Kaludi/food-category-classification-v2.0",
       {
         method:"POST",
         headers:{
