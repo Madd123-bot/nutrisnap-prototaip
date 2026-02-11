@@ -7,84 +7,110 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 
-// test route
-app.get("/", (req, res) => {
-  res.send("Gemini Proxy Alive 🔥");
+// ==============================
+// 🇲🇾 FOOD TRANSLATOR
+// ==============================
+function translateFoodName(label){
+
+  const map = {
+    "fried rice":"nasi goreng",
+    "white rice":"nasi",
+    "rice":"nasi",
+    "burger":"burger",
+    "pizza":"pizza",
+    "sandwich":"sandwich",
+    "spaghetti":"spageti",
+    "noodles":"mee",
+    "ramen":"mee",
+    "salad":"salad",
+    "omelette":"telur",
+    "fried chicken":"ayam goreng",
+    "grilled chicken":"ayam",
+    "chicken curry":"kari ayam"
+  };
+
+  const key = label.toLowerCase();
+  return map[key] || label;
+}
+
+// ==============================
+// 🔥 CALORIE DATABASE
+// ==============================
+function getLocalCalories(name){
+
+  const db = {
+    "nasi goreng":630,
+    "ayam goreng":320,
+    "burger":295,
+    "pizza":266,
+    "mee":400,
+    "nasi":200,
+    "kari ayam":350
+  };
+
+  return db[name.toLowerCase()] || 250;
+}
+
+// ==============================
+// TEST ROUTE
+// ==============================
+app.get("/", (req,res)=>{
+  res.send("NutriSnap HF Proxy Alive 🔥");
 });
 
-app.post("/ai", async (req, res) => {
-  try {
+// ==============================
+// 🤖 AI ROUTE
+// ==============================
+app.post("/ai", async (req,res)=>{
 
-    if (!req.body.image) {
+  try{
+
+    if(!req.body.image){
       return res.json([]);
     }
 
-    // 🔥 buang prefix base64 (Gemini taknak data:image/...)
     const base64 = req.body.image.replace(/^data:image\/\w+;base64,/, "");
 
     const ai = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      "https://api-inference.huggingface.co/models/nateraw/food",
       {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
+        method:"POST",
+        headers:{
+          "Authorization":"Bearer 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",
+          "Content-Type":"application/json"
         },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text:
-                    "Detect ALL food items in this image individually. Return ONLY JSON array like [{name, calories, protein, carbs}]. No explanation."
-                },
-                {
-                  inline_data: {
-                    mime_type: "image/jpeg",
-                    data: base64
-                  }
-                }
-              ]
-            }
-          ]
-        })
+        body: base64
       }
     );
 
     const data = await ai.json();
 
-    console.log("GEMINI RAW:", JSON.stringify(data));
+    console.log("HF RAW:",data);
 
-    // 🔥 ambil text result dari Gemini
-    let text = "[]";
-
-    try {
-      text =
-        data.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
-    } catch (e) {
-      console.log("FORMAT ERROR");
+    if(!Array.isArray(data)){
+      return res.json([]);
     }
 
-    // 🔥 buang markdown ```json kalau ada
-    text = text.replace(/```json/g, "").replace(/```/g, "").trim();
+    const top = data[0];
 
-    let result = [];
+    const localName = translateFoodName(top.label);
 
-    try {
-      result = JSON.parse(text);
-    } catch {
-      console.log("JSON PARSE FAIL:", text);
-    }
+    // 🔥 RETURN FORMAT SAMA MACAM GEMINI LAMA
+    res.json([{
+      name: localName,
+      calories: getLocalCalories(localName),
+      protein: 10,
+      carbs: 40
+    }]);
 
-    res.json(result);
-
-  } catch (e) {
-    console.log("SERVER ERROR:", e);
-    res.status(500).json({ error: e.message });
+  }catch(e){
+    console.log("SERVER ERROR:",e);
+    res.json([]);
   }
 });
 
 const PORT = process.env.PORT || 8080;
 
-app.listen(PORT, () => {
-  console.log("Gemini Proxy Running on " + PORT);
+app.listen(PORT,()=>{
+  console.log("NutriSnap HF Proxy Running 🔥");
 });
