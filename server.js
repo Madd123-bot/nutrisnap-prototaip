@@ -72,7 +72,7 @@ app.post("/ai", async (req,res)=>{
     const base64 = req.body.image.replace(/^data:image\/\w+;base64,/, "");
 
     const ai = await fetch(
-      "https://api-inference.huggingface.co/models/nateraw/food",
+      "https://router.huggingface.co/hf-inference/models/nateraw/food",
       {
         method:"POST",
         headers:{
